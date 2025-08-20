@@ -1,0 +1,42 @@
+{
+    "cmd" :
+    {
+        "local_address": "0.0.0.0:11000",
+        "remote_address": "127.0.0.1:11001",
+        "response_timeout_ms": 5000,
+        "agent_settings": {
+            "queue_size": 1000,
+            "default_timeout_ms": 2000
+        }
+    },
+    "msc_agent": [
+    {
+        "id": "1",
+        "local_address": "0.0.0.0:12000",
+        "remote_address": "127.0.0.1:12001",
+        "response_timeout_ms": 5000,
+        "agent_settings": { 
+            "queue_size": 1000,
+            "default_timeout_ms": 2000
+        }
+    },
+    {
+        "id": "2",
+        "local_address": "0.0.0.0:12010",
+        "remote_address": "127.0.0.1:12011",
+        "response_timeout_ms": 5000,
+        "agent_settings": {
+            "queue_size": 1000,
+            "default_timeout_ms": 2000
+        }
+    }
+    ],
+    "stream_ports": [
+    {
+        "id": "1",
+        "local_address": "0.0.0.0:13000",
+        "remote_address": "127.0.0.1:13001",
+        "format": "binary_v1"
+    }
+    ]
+}
