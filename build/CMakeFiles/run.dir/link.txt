@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/run.dir/link.d CMakeFiles/run.dir/src/main.cpp.o -o run  /usr/lib/libso_s.5.8.4.a

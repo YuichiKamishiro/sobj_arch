@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/yuichi/sobj_arch/build/cmake_install.cmake",
+		"/home/yuichi/sobj_arch/build/tester/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

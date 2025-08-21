@@ -12,6 +12,8 @@
 
 std::atomic<bool> running{true};
 
+std::thread epoll_thr;
+
 void signal_handler(int signal) {
   std::cout << "Received signal " << signal << ", shutting down..."
             << std::endl;
@@ -51,8 +53,6 @@ int main(int argc, char *argv[]) {
 
   CommandQueue command_queue(queue_size);
   CommandQueue msc_queue(queue_size);
-  std::thread epoll_thr(
-      [&]() { epoll_thread(config, command_queue, msc_queue, running); });
 
   try {
     so_5::launch([&](so_5::environment_t &env) {
@@ -85,8 +85,13 @@ int main(int argc, char *argv[]) {
                   std::cref(msc_config), broadcaster_mbox, dispatcher_mbox,
                   std::ref(msc_queue));
               msc_mboxes[msc_config.id] = msc_agent->so_direct_mbox();
+              std::cout << "Added one\n";
             }
-
+            
+            epoll_thr = std::thread([&, msc_mboxes]() {
+              epoll_thread(config, command_queue, msc_queue, running, msc_mboxes);
+          });
+            
             auto ingress_agent = coop.make_agent<CommandIngressAgent>(
                 std::ref(command_queue), std::cref(config), test_mode,
                 dispatcher_mbox);
@@ -96,7 +101,6 @@ int main(int argc, char *argv[]) {
           });
 
       while (running.load()) {
-        // std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
       env.stop();
@@ -105,11 +109,11 @@ int main(int argc, char *argv[]) {
     std::cerr << "SObjectizer error: " << e.what() << std::endl;
     running.store(false);
   }
-
+  
   if (epoll_thr.joinable()) {
     epoll_thr.join();
   }
-
+  
   std::cout << "Application shutdown complete." << std::endl;
   return 0;
 }

@@ -51,29 +51,6 @@ struct CommandQueue {
         }
         return std::nullopt;
     }
-
-    std::optional<Packet> pop_for_agent(const std::string& agent_id) {
-        std::unique_lock lock(mtx);
-        std::priority_queue<Packet, std::vector<Packet>, PacketComparator> temp_queue;
-        std::optional<Packet> result;
-
-        while (!queue.empty()) {
-            Packet pkt = queue.top();
-            queue.pop();
-            if (pkt.port_id == "msc_" + agent_id) {
-                result = pkt;
-                break;
-            } else {
-                temp_queue.push(pkt);
-            }
-        }
-        // Возвращаем оставшиеся пакеты
-        while (!temp_queue.empty()) {
-            queue.push(temp_queue.top());
-            temp_queue.pop();
-        }
-        return result;
-    }
 };
 
 #endif

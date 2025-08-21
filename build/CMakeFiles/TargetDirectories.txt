@@ -1,0 +1,6 @@
+/home/yuichi/sobj_arch/build/CMakeFiles/run.dir
+/home/yuichi/sobj_arch/build/CMakeFiles/edit_cache.dir
+/home/yuichi/sobj_arch/build/CMakeFiles/rebuild_cache.dir
+/home/yuichi/sobj_arch/build/tester/CMakeFiles/tester.dir
+/home/yuichi/sobj_arch/build/tester/CMakeFiles/edit_cache.dir
+/home/yuichi/sobj_arch/build/tester/CMakeFiles/rebuild_cache.dir

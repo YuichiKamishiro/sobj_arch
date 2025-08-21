@@ -359,15 +359,13 @@ private:
   const MscAgentSettings &settings_;
   so_5::mbox_t broadcaster_;
   so_5::mbox_t dispatcher_mbox_;
-  CommandQueue &msc_queue_;
-  so_5::timer_id_t process_timer_;
 
 public:
   MscAgent(so_5::agent_context_t ctx, const MscAgentSettings &settings,
            so_5::mbox_t broadcaster_mbox, so_5::mbox_t dispatcher_mbox,
            CommandQueue &msc_queue)
       : so_5::agent_t(ctx), settings_(settings), broadcaster_(broadcaster_mbox),
-        dispatcher_mbox_(dispatcher_mbox), msc_queue_(msc_queue) {}
+        dispatcher_mbox_(dispatcher_mbox) {}
 
   void so_define_agent() override {
     so_subscribe_self()
@@ -376,15 +374,12 @@ public:
   }
 
   void so_evt_start() override {
-    process_timer_ = so_5::send_periodic<ProcessIncomingPackets>(
-        *this, std::chrono::milliseconds(10), std::chrono::milliseconds(10));
-
 #ifdef DEBUG
     std::cout << "[MSC-" << settings_.id << "] Agent started" << std::endl;
 #endif
   }
 
-  void so_evt_finish() override { process_timer_.release(); }
+  void so_evt_finish() override {}
 
 private:
   void handle_command(const so_5::mhood_t<SubCommand> &msg) {
@@ -403,42 +398,34 @@ private:
         msg->request_id, settings_.id, true);
   }
 
-  void process_incoming_packets(const so_5::mhood_t<ProcessIncomingPackets> &) {
-    while (true) {
-      auto pkt_opt = msc_queue_.pop_for_agent(settings_.id);
-      if (!pkt_opt)
-        break;
+  void process_incoming_packets(const so_5::mhood_t<Packet> pkt) {
+    try {
+      std::string data_str(pkt->buf.begin(), pkt->buf.begin() + pkt->len);
+      json data = json::parse(data_str);
 
-      const Packet &pkt = pkt_opt.value();
+      if (data.contains("request_id")) {
+        // Синхронный ответ на команду → dispatcher
+        std::string request_id = data["request_id"];
 
-      try {
-        std::string data_str(pkt.buf.begin(), pkt.buf.begin() + pkt.len);
-        json data = json::parse(data_str);
-
-        if (data.contains("request_id")) {
-          // Синхронный ответ на команду → dispatcher
-          std::string request_id = data["request_id"];
-
-          so_5::send<AgentReply>(dispatcher_mbox_, data, request_id,
-                                 settings_.id, true); // Почему то не работает надо разобраться
+        so_5::send<AgentReply>(dispatcher_mbox_, data, request_id, settings_.id,
+                               true); // Почему то не работает надо разобраться
 
 #ifdef DEBUG
-          std::cout << "[MSC-" << settings_.id
-                    << "] Sync response forwarded: " << request_id << std::endl;
+        std::cout << "[MSC-" << settings_.id
+                  << "] Sync response forwarded: " << request_id << std::endl;
 #endif
-        } else {
-          so_5::send<Event>(broadcaster_, data); // Работает шикарно)
+      } else {
+        so_5::send<Event>(broadcaster_, data); // Работает шикарно)
 
 #ifdef DEBUG
-          std::cout << "[MSC-" << settings_.id << "] Async event forwarded: "
-                    << data.value("event", "unknown") << std::endl;
+        std::cout << "[MSC-" << settings_.id << "] Async event forwarded: "
+                  << data.value("event", "unknown") << std::endl;
 #endif
-        }
-
-      } catch (const std::exception &e) {
-        std::cerr << "[MSC-" << settings_.id << "] Parse error: " << e.what()
-                  << std::endl;
       }
+
+    } catch (const std::exception &e) {
+      std::cerr << "[MSC-" << settings_.id << "] Parse error: " << e.what()
+                << std::endl;
     }
   }
 };

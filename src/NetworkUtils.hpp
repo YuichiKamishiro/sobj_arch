@@ -54,7 +54,8 @@ sockaddr_in parse_address(const std::string &addr_str) {
 
 // Поток обработки epoll для приема пакетов
 void epoll_thread(const Config &config, CommandQueue &command_queue,
-                  CommandQueue &msc_queue, std::atomic<bool> &running) {
+                  CommandQueue &msc_queue, std::atomic<bool> &running,
+                  std::unordered_map<std::string, so_5::mbox_t> msc_mboxes) {
   int epoll_fd = epoll_create1(0);
   if (epoll_fd < 0) {
     std::cerr << "Ошибка: epoll_create" << std::endl;
@@ -111,7 +112,14 @@ void epoll_thread(const Config &config, CommandQueue &command_queue,
                                              recv_len);
         Packet pkt{buffer_data, static_cast<size_t>(recv_len), port_id, sender};
         if (port_id.starts_with("msc_")) {
-          msc_queue.push(pkt); // Пакеты MSC
+          std::string agent_id = port_id.substr(4);
+          auto it = msc_mboxes.find(agent_id);
+          if (it != msc_mboxes.end()) {
+            so_5::send<Packet>(it->second, pkt);
+          } else {
+             std::cerr << "ERROR: Mailbox for agent " << agent_id 
+                       << " not found. Packet dropped." << std::endl;
+          }
 #ifdef DEBUG
           std::cout << "DEBUG: MSC пакет из " << port_id << ", размер "
                     << recv_len << std::endl;
